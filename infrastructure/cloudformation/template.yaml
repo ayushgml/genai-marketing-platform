@@ -1,0 +1,340 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for Flask-based AI-powered SaaS platform with ChromaDB, S3, RDS, and DynamoDB
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: #Sensitive data was masked here
+
+  InstanceType:
+    Description: EC2 instance type for Flask and ChromaDB
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  DBPassword:
+    NoEcho: true
+    Description: Password for the RDS PostgreSQL database
+    Type: String
+    MinLength: 8
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: FlaskVPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public APP Subnets for backend
+  PublicAppSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  PublicAppSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.16.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  PublicAppSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.32.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [2, !GetAZs '']
+
+  # Public WEB Subnets for frontend
+  PublicWebSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.48.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  PublicWebSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.64.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  PublicWebSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.80.0/20
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [2, !GetAZs '']
+
+  # Private DB Subnets
+  PrivateDBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.96.0/20
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  PrivateDBSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.112.0/20
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  PrivateDBSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.128.0/20
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [2, !GetAZs '']
+
+  # Reserved Subnets
+  ReservedSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.144.0/20
+      AvailabilityZone: !Select [0, !GetAZs '']
+
+  ReservedSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.160.0/20
+      AvailabilityZone: !Select [1, !GetAZs '']
+
+  ReservedSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.176.0/20
+      AvailabilityZone: !Select [2, !GetAZs '']
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: #Sensitive data was masked here
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicAppSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicAppSubnet2
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicAppSubnet3
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation4:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicWebSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation5:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicWebSubnet2
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation6:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      SubnetId: !Ref PublicWebSubnet3
+      RouteTableId: !Ref RouteTable
+
+  # Security Group for EC2 instances
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH and HTTP access
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: #Sensitive data was masked here
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: #Sensitive data was masked here
+      Tags:
+        - Key: Name
+          Value: EC2SecurityGroup
+
+  # EC2 Instance for Flask Main Service
+  FlaskEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PublicAppSubnet1
+      ImageId: ami-0d5eff06f840b45e9 # Ubuntu 20.04 AMI
+      Tags:
+        - Key: Name
+          Value: FlaskMainService
+
+  # EC2 Instance for ChromaDB
+  ChromaDBEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.small
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PublicAppSubnet1
+      ImageId: ami-0d5eff06f840b45e9 # Ubuntu 20.04 AMI
+      Tags:
+        - Key: Name
+          Value: ChromaDB
+
+  # S3 Bucket for media storage
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub #Sensitive data was masked here
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: Name
+          Value: FlaskMediaBucket
+
+  # S3 Bucket Policy for public access
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub #Sensitive data was masked here
+
+
+  # DynamoDB Table for storing unstructured data like campaign drafts
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub #Sensitive data was masked here
+      AttributeDefinitions:
+        - AttributeName: CampaignID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: CampaignID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Name
+          Value: CampaignDraftsTable
+
+  # RDS PostgreSQL for structured data
+  RDSPostgreSQL:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: FlaskPostgresDB
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      MasterUsername: #Sensitive data was masked here
+      MasterUserPassword: !Ref DBPassword
+      VPCSecurityGroups:
+        - !Ref EC2SecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: true
+
+
+  # DB Subnet Group for RDS
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets available for the RDS DB instance
+      SubnetIds:
+        - !Ref PrivateDBSubnet1
+        - !Ref PrivateDBSubnet2
+        - !Ref PrivateDBSubnet3
+
+  # Security Group for RDS
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable PostgreSQL access from EC2 Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+
+Outputs:
+  FlaskEC2InstancePublicIP:
+    Description: Public IP address of the Flask EC2 instance
+    Value: !GetAtt FlaskEC2Instance.PublicIp
+
+  ChromaDBEC2InstancePublicIP:
+    Description: Public IP address of the ChromaDB EC2 instance
+    Value: !GetAtt ChromaDBEC2Instance.PublicIp
+
+  S3BucketName:
+    Description: Name of the S3 bucket for media storage
+    Value: !Ref S3Bucket
+
+  DynamoDBTableName:
+    Description: DynamoDB table name for campaign drafts
+    Value: !Ref DynamoDBTable
+
+  RDSPostgreSQLEndpoint:
+    Description: PostgreSQL database endpoint
+    Value: !GetAtt RDSPostgreSQL.Endpoint.Address
