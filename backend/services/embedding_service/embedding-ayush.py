@@ -8,7 +8,6 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.schema.messages import HumanMessage, AIMessage
-from langchain.vectorstores import Chroma
 from PIL import Image
 import io
 import json
@@ -19,6 +18,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import tiktoken
 import time
 import logging
+from langchain_chroma import Chroma
+from uuid import uuid4
+import uuid
+from langchain_core.documents import Document
+import chromadb
+
+
 
 # Load environment variables from ../../.env file
 dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
@@ -39,6 +45,9 @@ RDS_DBNAME = os.getenv('RDS_DBNAME')
 RDS_USER = os.getenv('RDS_USER')
 RDS_PASSWORD = os.getenv('RDS_PASSWORD')
 RDS_HOST = os.getenv('RDS_HOST')
+
+LANGSMITH_API_KEY = os.getenv('LANGSMITH_API_KEY')
+LANGSMITH_TRACING = os.getenv('LANGSMITH_TRACING')
 
 # Initialize clients with configurations
 s3 = boto3.client('s3', region_name=AWS_REGION)
@@ -74,13 +83,14 @@ def get_s3_file(bucket_name, file_key):
         logger.error(f"Error fetching {file_key} from S3: {e}")
         return None
 
-def update_dynamo_db(product_id, chromadb_id):
+def update_dynamo_db(product_id, chromadb_id, campaign_id):
     """Link S3 resources and ChromaDB embeddings in DynamoDB."""
     try:
         table.put_item(
             Item={
                 'product_id': product_id,
-                'chroma_id': chromadb_id
+                'chroma_id': chromadb_id,
+                'CampaignID': campaign_id  # Added the missing CampaignID key
             }
         )
         logger.info(f"DynamoDB updated for product_id {product_id}")
@@ -152,72 +162,7 @@ def extract_image_features(image):
         logger.error(f"Error in generating image features: {e}")
         return "Error in generating image features"
 
-# def process_product(product_id):
-#     """Process a single product ID: fetch data, generate embeddings, and update databases."""
-#     logger.info(f"Processing product_id {product_id}")
-#     image_key = f"{S3_BASE_FOLDER}{product_id}/image.png"
-#     description_key = f"{S3_BASE_FOLDER}{product_id}/description.txt"
 
-#     # Load image
-#     image_data = get_s3_file(S3_BUCKET_NAME, image_key)
-
-#     if not image_data:
-#         logger.warning(f"Skipping product_id {product_id} due to missing image.")
-#         return
-
-#     try:
-#         image = Image.open(io.BytesIO(image_data))
-#     except Exception as e:
-#         logger.error(f"Error opening image for product_id {product_id}: {e}")
-#         return
-
-#     # Load description
-#     description_data = get_s3_file(S3_BUCKET_NAME, description_key)
-
-#     if not description_data:
-#         logger.warning(f"Skipping product_id {product_id} due to missing description.")
-#         return
-
-#     description_text = description_data.decode('utf-8')
-
-#     image_features = extract_image_features(image)
-    
-#     exit()
-#     # Concatenate features with the description
-#     combined_text = f"Features: {image_features}\nDescription: {description_text}"
-
-#     # Generate embeddings
-#     try:
-#         embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
-#         embeddings = embedding_model.embed(combined_text)
-#     except Exception as e:
-#         logger.error(f"Error generating embeddings for product_id {product_id}: {e}")
-#         return
-
-#     # Store embeddings in ChromaDB
-#     try:
-#         vector_store = Chroma(
-#             collection_name="insta_posts",
-#             embedding_function=embedding_model,
-#             host=CHROMADB_HOST,
-#             port=int(CHROMADB_PORT)
-#         )
-
-#         metadata = {
-#             "product_id": product_id,
-#             "image_s3_path": f"s3://{S3_BUCKET_NAME}/{image_key}",
-#             "description_s3_path": f"s3://{S3_BUCKET_NAME}/{description_key}"
-#         }
-
-#         vector_store.add_texts([combined_text], metadatas=[metadata], ids=[product_id])
-#         chromadb_id = product_id  # Assuming the ID used is the product_id
-#         logger.info(f"Embeddings added to ChromaDB for product_id {product_id}")
-#     except Exception as e:
-#         logger.error(f"Error adding embeddings to ChromaDB for product_id {product_id}: {e}")
-#         return
-
-#     # Update DynamoDB
-#     update_dynamo_db(product_id, chromadb_id)
 def process_product(product_id):
     """Process a single product ID: fetch data, generate embeddings, and update databases."""
     logger.info(f"Processing product_id {product_id}")
@@ -255,38 +200,39 @@ def process_product(product_id):
     # Generate embeddings
     try:
         embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
-        embeddings = embedding_model.embed(combined_text)
     except Exception as e:
         logger.error(f"Error generating embeddings for product_id {product_id}: {e}")
         return
 
     # Store embeddings in ChromaDB
     try:
-        from langchain.vectorstores import Chroma
-
+        client = chromadb.HttpClient(host=CHROMADB_HOST, port=CHROMADB_PORT, ssl=False)
         vector_store = Chroma(
             collection_name="insta_posts",
             embedding_function=embedding_model,
-            host=CHROMADB_HOST,
-            port=int(CHROMADB_PORT)
+            client=client
         )
-
+    
         metadata = {
+            "source": "insta_posts",
             "product_id": product_id,
             "image_s3_path": f"s3://{S3_BUCKET_NAME}/{image_key}",
             "description_s3_path": f"s3://{S3_BUCKET_NAME}/{description_key}"
         }
-
+    
         # Add embeddings to ChromaDB
         vector_store.add_texts([combined_text], metadatas=[metadata], ids=[str(product_id)])
         logger.info(f"Embeddings added to ChromaDB for product_id {product_id}")
     except Exception as e:
         logger.error(f"Error adding embeddings to ChromaDB for product_id {product_id}: {e}")
         return
-
+    
+    # Generate a unique CampaignID
+    campaign_id = str(uuid.uuid4())
+    
     # Update DynamoDB
     try:
-        update_dynamo_db(product_id, str(product_id))
+        update_dynamo_db(product_id, str(product_id), campaign_id)
     except Exception as e:
         logger.error(f"Error updating DynamoDB for product_id {product_id}: {e}")
         return
