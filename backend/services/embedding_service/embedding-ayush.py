@@ -1,8 +1,10 @@
 import os
 import boto3
 import botocore
-from langchain import OpenAI
+import base64
+from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.schema.messages import HumanMessage, AIMessage
 from langchain.vectorstores import Chroma
 from PIL import Image
 import io
@@ -79,13 +81,40 @@ def update_dynamo_db(product_id, chromadb_id):
     except Exception as e:
         logger.error(f"Error updating DynamoDB for product_id {product_id}: {e}")
 
+def encode_image(image):
+    """Encode an image file as a base64 string."""
+    with open(image, "rb") as image_file:
+        base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+    return base64_image
+
+
 def extract_image_features(image):
-    """Extract image features using GPT-4."""
+    """Extract image features using Langchain's OpenAI."""
     
     
+    encoded_image = encode_image(image)
+    print(encoded_image.type)
+    # Initialize the OpenAI client
+    llm = ChatOpenAI(model="gpt-4o-mini", max_tokens=300)
+
+    # Create the prompt for the model
+    prompt = [
+        AIMessage(content="You are a bot that is good at analyzing images."),
+        HumanMessage(content=[
+            {"type": "text", "text": "Describe the contents of this image."},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{encoded_image}"
+                },
+            },
+        ])
+    ]
+    response = llm.invoke(prompt)
     
-    
-    image_description = "Placeholder image features"
+    # Extract the image description from the API response
+    image_description = response.choices[0].message['content'].strip()
+
     return image_description
 
 def process_product(product_id):
@@ -96,6 +125,7 @@ def process_product(product_id):
 
     # Load image
     image_data = get_s3_file(S3_BUCKET_NAME, image_key)
+
     if not image_data:
         logger.warning(f"Skipping product_id {product_id} due to missing image.")
         return
@@ -108,15 +138,16 @@ def process_product(product_id):
 
     # Load description
     description_data = get_s3_file(S3_BUCKET_NAME, description_key)
+
     if not description_data:
         logger.warning(f"Skipping product_id {product_id} due to missing description.")
         return
 
     description_text = description_data.decode('utf-8')
 
-    # Extract image features
     image_features = extract_image_features(image)
-
+    
+    exit()
     # Concatenate features with the description
     combined_text = f"Features: {image_features}\nDescription: {description_text}"
 
