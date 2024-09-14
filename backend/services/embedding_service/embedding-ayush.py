@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 from boto3.dynamodb.conditions import Key
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from ../../.env file
+dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
+load_dotenv(dotenv_path)
 
 # Configuration from .env
 AWS_REGION = os.getenv('AWS_REGION')
@@ -40,7 +41,7 @@ table = dynamodb.Table(DYNAMODB_TABLE_NAME)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Functions (same as before)
+# Functions
 def list_product_ids(bucket_name, base_folder):
     """List all product IDs in the insta_posts folder of the S3 bucket."""
     paginator = s3.get_paginator('list_objects_v2')
@@ -50,7 +51,8 @@ def list_product_ids(bucket_name, base_folder):
     for page in paginator.paginate(**operation_parameters):
         prefixes = page.get('CommonPrefixes', [])
         for prefix in prefixes:
-            product_id = prefix.get('Prefix').split('/')[-2]
+            prefix_path = prefix.get('Prefix')
+            product_id = prefix_path[len(base_folder):-1]  # Extract product_id from prefix
             product_ids.add(product_id)
     logger.info(f"Found {len(product_ids)} product IDs.")
     return list(product_ids)
@@ -64,29 +66,12 @@ def get_s3_file(bucket_name, file_key):
         logger.error(f"Error fetching {file_key} from S3: {e}")
         return None
 
-def upload_embeddings_to_s3(bucket_name, product_id, embeddings):
-    """Upload embeddings as a JSON file to S3."""
-    embeddings_key = f"{S3_BASE_FOLDER}{product_id}/embeddings.json"
-    try:
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=embeddings_key,
-            Body=json.dumps(embeddings).encode('utf-8'),
-            ContentType='application/json'
-        )
-        logger.info(f"Embeddings uploaded to S3 at {embeddings_key}")
-        return embeddings_key
-    except botocore.exceptions.ClientError as e:
-        logger.error(f"Error uploading embeddings to S3: {e}")
-        return None
-
-def update_dynamo_db(product_id, s3_key, chromadb_id):
+def update_dynamo_db(product_id, chromadb_id):
     """Link S3 resources and ChromaDB embeddings in DynamoDB."""
     try:
         table.put_item(
             Item={
                 'product_id': product_id,
-                's3_path': s3_key,
                 'chroma_id': chromadb_id
             }
         )
@@ -96,13 +81,8 @@ def update_dynamo_db(product_id, s3_key, chromadb_id):
 
 def extract_image_features(image):
     """Extract image features using GPT-4."""
-    # Note: Replace this with actual image processing logic
-    llm = OpenAI(model="gpt-4o", api_key=OPENAI_API_KEY)
-    image_features_prompt = """
-    Describe the image in detail, listing visually identifiable features separated by commas. Do not include brand names.
-    """
     
-    # //Devshree - Handle the OPEN API Calling. WHen image is uploaded. The API returns the features text. 
+    
     
     
     image_description = "Placeholder image features"
@@ -142,15 +122,10 @@ def process_product(product_id):
 
     # Generate embeddings
     try:
-        embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002")
+        embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
         embeddings = embedding_model.embed(combined_text)
     except Exception as e:
         logger.error(f"Error generating embeddings for product_id {product_id}: {e}")
-        return
-
-    # Store embeddings in S3
-    embeddings_s3_key = upload_embeddings_to_s3(S3_BUCKET_NAME, product_id, embeddings)
-    if not embeddings_s3_key:
         return
 
     # Store embeddings in ChromaDB
@@ -159,7 +134,7 @@ def process_product(product_id):
             collection_name="insta_posts",
             embedding_function=embedding_model,
             host=CHROMADB_HOST,
-            port=CHROMADB_PORT
+            port=int(CHROMADB_PORT)
         )
 
         metadata = {
@@ -176,7 +151,7 @@ def process_product(product_id):
         return
 
     # Update DynamoDB
-    update_dynamo_db(product_id, embeddings_s3_key, chromadb_id)
+    update_dynamo_db(product_id, chromadb_id)
 
 def main():
     product_ids = list_product_ids(S3_BUCKET_NAME, S3_BASE_FOLDER)
@@ -193,7 +168,6 @@ def main():
                 future.result()
             except Exception as e:
                 logger.error(f"Unhandled exception processing product_id {pid}: {e}")
-
 
 if __name__ == "__main__":
     main()
