@@ -64,11 +64,12 @@ def process_json_and_upload(json_file):
     # Loop through each post in the JSON file
     for post in posts_data:
         product_id = post.get('post id')
-        image_url = post.get('image_url')
-        description = post.get('description', '')
+        if product_id > 435:
+            image_url = post.get('image_url')
+            description = post.get('description', '')
 
-        # Upload image and description to S3
-        upload_image_and_description_to_s3(product_id, image_url, description)
+            # Upload image and description to S3
+            upload_image_and_description_to_s3(product_id, image_url, description)
 
 # Example usage
 json_file = 'reformatted_posts.json'  # Replace with the actual JSON file path
