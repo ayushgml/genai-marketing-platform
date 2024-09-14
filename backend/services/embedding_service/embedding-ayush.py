@@ -10,20 +10,18 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.schema.messages import HumanMessage, AIMessage
 from PIL import Image
 import io
-import json
 import logging
 from dotenv import load_dotenv
 from boto3.dynamodb.conditions import Key
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tiktoken
-import time
 import logging
 from langchain_chroma import Chroma
-from uuid import uuid4
 import uuid
-from langchain_core.documents import Document
 import chromadb
+import warnings
 
+warnings.filterwarnings("ignore")
 
 
 # Load environment variables from ../../.env file
@@ -46,8 +44,6 @@ RDS_USER = os.getenv('RDS_USER')
 RDS_PASSWORD = os.getenv('RDS_PASSWORD')
 RDS_HOST = os.getenv('RDS_HOST')
 
-LANGSMITH_API_KEY = os.getenv('LANGSMITH_API_KEY')
-LANGSMITH_TRACING = os.getenv('LANGSMITH_TRACING')
 
 # Initialize clients with configurations
 s3 = boto3.client('s3', region_name=AWS_REGION)
@@ -155,7 +151,6 @@ def extract_image_features(image):
         # Send the prompt to the model
         response = llm.invoke(prompt)
         image_description = response.content.strip()
-        print(image_description)
         return image_description
 
     except Exception as e:
@@ -242,7 +237,7 @@ def main():
     if not product_ids:
         logger.error("No product IDs found. Exiting.")
         return
-    d_product_ids = product_ids[:10]
+    d_product_ids = product_ids[:]
     # Use ThreadPoolExecutor for concurrency
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
         futures = {executor.submit(process_product, pid): pid for pid in d_product_ids}
