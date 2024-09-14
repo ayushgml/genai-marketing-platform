@@ -22,6 +22,7 @@ import chromadb
 import warnings
 
 warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 # Load environment variables from ../../.env file
@@ -53,6 +54,15 @@ table = dynamodb.Table(DYNAMODB_TABLE_NAME)
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
+
+client = chromadb.HttpClient(host=CHROMADB_HOST, port=CHROMADB_PORT, ssl=False)
+vector_store = Chroma(
+    collection_name="insta_posts",
+    embedding_function=embedding_model,
+    client=client
+)
 
 # Functions
 def list_product_ids(bucket_name, base_folder):
@@ -192,22 +202,8 @@ def process_product(product_id):
     # Concatenate features with the description
     combined_text = f"Features: {image_features}\nDescription: {description_text}"
 
-    # Generate embeddings
-    try:
-        embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
-    except Exception as e:
-        logger.error(f"Error generating embeddings for product_id {product_id}: {e}")
-        return
-
     # Store embeddings in ChromaDB
     try:
-        client = chromadb.HttpClient(host=CHROMADB_HOST, port=CHROMADB_PORT, ssl=False)
-        vector_store = Chroma(
-            collection_name="insta_posts",
-            embedding_function=embedding_model,
-            client=client
-        )
-    
         metadata = {
             "source": "insta_posts",
             "product_id": product_id,
