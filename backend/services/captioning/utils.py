@@ -7,6 +7,7 @@ from langchain.schema import AIMessage, HumanMessage
 from app.config import Config
 from services.retriever.utils import perform_similarity_search
 from services.embedding.utils import extract_image_features, get_s3_file
+from services.campaign.utils import get_campaign_from_client
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -19,7 +20,8 @@ llm = ChatOpenAI(model="gpt-4", openai_api_key=Config.OPENAI_API_KEY, max_tokens
 
 def fetch_product_data(client_id, product_id):
     """Fetch the image and description from S3 for a given product."""
-    image_key = f"client_uploads/{client_id}/{product_id}/image0.jpg"
+    
+    image_key = f"client_uploads/{client_id}/{product_id}/image.png"
     description_key = f"client_uploads/{client_id}/{product_id}/description.txt"
     
     image_data = get_s3_file(Config.S3_BUCKET_NAME, image_key)
@@ -37,13 +39,16 @@ def fetch_product_data(client_id, product_id):
         logger.error(f"Error opening image for client_id {client_id} and product_id {product_id}: {e}")
         return None, None
 
-    return image, description_text
+    campaign_data = get_campaign_from_client(client_id, product_id)
 
-def generate_captions_from_context(query, context):
+    return image, description_text, campaign_data["campaign_type"], campaign_data["target_demographic"], campaign_data["length"]
+
+def generate_captions_from_context(query, context, campaign_type, demographic, length):
     """Generate 7 days worth of captions and hashtags based on query and context."""
     prompt = [
-        HumanMessage(content=f"Using the following context: {context}. Create 7 days' worth of Instagram captions to market this product: {query}. For each day, generate captions along with relevant hashtags."),
-        AIMessage(content="Each day should have a unique caption and a unique set of hashtags.")
+        HumanMessage(content=f"Using the following context: {context}. Create {length} days' worth of Instagram captions to market this product: {query}. For each day, generate captions along with relevant hashtags."),
+        AIMessage(content=f"Each day should have a unique caption and a unique set of hashtags. Campaign type should be {campaign_type}. Target demographic is {demographic}."),
+        HumanMessage(content="Output should be in the format: {\"day\": \"Day 1\", \"caption\": \"Caption text\", \"hashtags\": \"#hashtag1 #hashtag2\"}"),
     ]
 
     try:
@@ -51,9 +56,6 @@ def generate_captions_from_context(query, context):
         content = response.content.strip()
 
         days_content = content.split("\n\n")
-        # if len(days_content) != 7:
-        #     print(days_content)
-        #     raise ValueError("Generated content does not contain exactly 7 entries.")
 
         captions = []
         for i, day_content in enumerate(days_content):
@@ -77,7 +79,8 @@ def generate_marketing_captions(client_id, product_id):
     """Main function to generate 7 days of Instagram captions and hashtags."""
     
     # Fetch product data from S3
-    image, description_text = fetch_product_data(client_id, product_id)
+    image, description_text, campaign_type, demographic, length = fetch_product_data(client_id, product_id)
+    
     if not image or not description_text:
         return None
 
@@ -91,7 +94,7 @@ def generate_marketing_captions(client_id, product_id):
     context = perform_similarity_search(combined_text)
 
     # Generate captions based on the query and the retrieved context
-    captions = generate_captions_from_context(combined_text, context)
+    captions = generate_captions_from_context(combined_text, context, campaign_type, demographic, length)
 
     if not captions:
         return None

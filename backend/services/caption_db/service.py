@@ -4,6 +4,7 @@ import boto3
 from . import caption_db_bp
 from app.config import Config
 from services.captioning.service import generate_marketing_captions
+from services.campaign.utils import get_campaign_from_client
 
 dynamodb = boto3.resource('dynamodb', region_name=Config.AWS_REGION) 
 table = dynamodb.Table(Config.DYNAMODB_CAMPAIGNS_TABLE_NAME) 
@@ -13,7 +14,6 @@ def generate_captions(client_id, product_id):
     """Endpoint to generate and store captions in DynamoDB."""
     try:
         result = generate_marketing_captions(client_id, product_id)
-        
         if result:
             store_captions_in_dynamodb(result)
             return jsonify(result), 200
@@ -25,13 +25,13 @@ def generate_captions(client_id, product_id):
     
 def generate_campaign_id(client_id, product_id):
     """Generate a unique campaign_id based on client_id and product_id."""
-    return f"{client_id}_{product_id}"
+    campaign_id = get_campaign_from_client(client_id, product_id)
+    return campaign_id
 
 def store_captions_in_dynamodb(campaign_data):
     """Stores the generated captions in DynamoDB."""
     try:
         campaign_id = generate_campaign_id(campaign_data['client_id'], campaign_data['product_id'])
-        
         campaign_data['campaign_id'] = campaign_id
 
         table.put_item(Item=campaign_data)

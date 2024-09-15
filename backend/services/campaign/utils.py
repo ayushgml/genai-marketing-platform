@@ -1,6 +1,9 @@
+import logging
 import psycopg2
 import uuid
 from app.config import Config
+
+logger = logging.getLogger(__name__)
 
 def create_table_if_not_exists(conn):
     """Creates the 'campaign_data' table in PostgreSQL if it doesn't already exist."""
@@ -124,15 +127,51 @@ def insert_record_into_db(record, client_id, product_id):
             cur.close()
             conn.close()
 
-# Example record to be inserted
-record = {
-    "client_id": "123",
-    "prod_id": "456",
-    "campaign_type": "email",
-    "length": 30,
-    "target_demographic": "18-25"
-}
+def get_campaign_from_client(client_id, product_id):
+    """Retrieves a campaign record from the 'campaign_data' table in PostgreSQL RDS based on client_id and product_id."""
 
-
-# Insert the record into the PostgreSQL RDS instance with an auto-generated campaign_id
-insert_record_into_rds(record)
+    select_sql = """
+    SELECT * FROM campaign_data
+    WHERE client_id = %s
+    AND prod_id = %s;
+    """
+    
+    conn = None
+    
+    try:
+        # Connection details
+        conn = psycopg2.connect(
+            host=Config.RDS_HOST,
+            database=Config.RDS_DBNAME,
+            user=Config.RDS_USER,
+            password=Config.RDS_PASSWORD,
+            port=Config.RDS_PORT
+        )
+        
+        # Execute the SELECT query
+        cur = conn.cursor()
+        cur.execute(select_sql, (client_id, product_id))
+        
+        # Fetch the result
+        result = cur.fetchone()
+        
+        if result:
+            result_json = {
+                "client_id": result[0],
+                "prod_id": result[1],
+                "campaign_id": result[2],
+                "campaign_type": result[3],
+                "length": result[4],
+                "target_demographic": result[5]
+            }
+            return result_json
+        else:
+            logger.error("Campaign record not found.")
+            return None
+        
+    except Exception as e:
+        logger.error(f"Error retrieving campaign record: {e}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
