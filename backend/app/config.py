@@ -18,3 +18,4 @@ class Config:
     RDS_USER = os.getenv('RDS_USER')
     RDS_PASSWORD = os.getenv('RDS_PASSWORD')
     RDS_PORT = os.getenv('RDS_PORT')
+    DYNAMODB_CAMPAIGNS_TABLE_NAME = os.getenv('DYNAMODB_CAMPAIGNS_TABLE_NAME')
