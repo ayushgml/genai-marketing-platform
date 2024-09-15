@@ -2,7 +2,6 @@ import io
 import boto3
 import logging
 from PIL import Image
-import base64
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage
 from app.config import Config
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 s3 = boto3.client('s3', region_name=Config.AWS_REGION)
 
 # OpenAI client for generating captions
-llm = ChatOpenAI(model="gpt-4", openai_api_key=Config.OPENAI_API_KEY, max_tokens=300)
+llm = ChatOpenAI(model="gpt-4", openai_api_key=Config.OPENAI_API_KEY, max_tokens=4096)
 
 def fetch_product_data(client_id, product_id):
     """Fetch the image and description from S3 for a given product."""
