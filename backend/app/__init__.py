@@ -12,5 +12,6 @@ def create_app():
     app.register_blueprint(embedding_bp, url_prefix='/embedding')
     app.register_blueprint(retriever_bp, url_prefix='/retriever')
     app.register_blueprint(captioning_bp, url_prefix='/captioning')
+    app.register_blueprint(caption_db_bp, url_prefix = '/caption_db')
 
     return app
