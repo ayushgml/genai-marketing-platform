@@ -1,5 +1,6 @@
 import psycopg2
 import uuid
+from app.config import Config
 
 def create_table_if_not_exists(conn):
     """Creates the 'campaign_data' table in PostgreSQL if it doesn't already exist."""
@@ -51,18 +52,12 @@ def insert_record_into_rds(record):
     # Connect to the PostgreSQL RDS instance
     try:
         # Connection details
-        db_endpoint = "flaskpostgresdb.cv6ue4wqkpyw.us-east-1.rds.amazonaws.com"
-        db_name = "flaskpostgresdb"
-        db_user = "dbadmin"
-        db_password = "Acc123$$"
-        db_port = 5432
-
         conn = psycopg2.connect(
-            host=db_endpoint,
-            database=db_name,
-            user=db_user,
-            password=db_password,
-            port=db_port
+            host=Config.RDS_HOST,
+            database=Config.RDS_DBNAME,
+            user=Config.RDS_USER,
+            password=Config.RDS_PASSWORD,
+            port=Config.RDS_PORT
         )
         
         # Create table if it doesn't exist
@@ -105,18 +100,12 @@ def insert_record_into_db(record, client_id, product_id):
     # Connect to the PostgreSQL RDS instance
     try:
         # Connection details
-        db_endpoint = "flaskpostgresdb.cv6ue4wqkpyw.us-east-1.rds.amazonaws.com"
-        db_name = "flaskpostgresdb"
-        db_user = "dbadmin"
-        db_password = "Acc1234$$"
-        db_port = 5432
-
         conn = psycopg2.connect(
-            host=db_endpoint,
-            database=db_name,
-            user=db_user,
-            password=db_password,
-            port=db_port
+            host=Config.RDS_HOST,
+            database=Config.RDS_DBNAME,
+            user=Config.RDS_USER,
+            password=Config.RDS_PASSWORD,
+            port=Config.RDS_PORT
         )
         
         # Create table if it doesn't exist
