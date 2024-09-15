@@ -122,8 +122,8 @@ def extract_image_features(image):
     
     # Initialize the OpenAI client
     llm = ChatOpenAI(
-        model="gpt-4",
-        max_tokens=300,
+        model="gpt-4o",
+        max_tokens=4096,
         openai_api_key=Config.OPENAI_API_KEY
     )
     
