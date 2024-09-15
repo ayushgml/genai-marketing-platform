@@ -1,16 +1,29 @@
 import os
+import io
 import boto3
 import botocore
-from langchain import OpenAI
+import base64
+from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage, AIMessage
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.schema.messages import HumanMessage, AIMessage
 from PIL import Image
 import io
-import json
 import logging
 from dotenv import load_dotenv
 from boto3.dynamodb.conditions import Key
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import tiktoken
+import logging
+from langchain_chroma import Chroma
+import uuid
+import chromadb
+import warnings
+
+warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 
 # Load environment variables from ../../.env file
 dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
@@ -32,6 +45,7 @@ RDS_USER = os.getenv('RDS_USER')
 RDS_PASSWORD = os.getenv('RDS_PASSWORD')
 RDS_HOST = os.getenv('RDS_HOST')
 
+
 # Initialize clients with configurations
 s3 = boto3.client('s3', region_name=AWS_REGION)
 dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
@@ -40,6 +54,15 @@ table = dynamodb.Table(DYNAMODB_TABLE_NAME)
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
+
+client = chromadb.HttpClient(host=CHROMADB_HOST, port=CHROMADB_PORT, ssl=False)
+vector_store = Chroma(
+    collection_name="insta_posts",
+    embedding_function=embedding_model,
+    client=client
+)
 
 # Functions
 def list_product_ids(bucket_name, base_folder):
@@ -66,27 +89,84 @@ def get_s3_file(bucket_name, file_key):
         logger.error(f"Error fetching {file_key} from S3: {e}")
         return None
 
-def update_dynamo_db(product_id, chromadb_id):
+def update_dynamo_db(product_id, chromadb_id, campaign_id):
     """Link S3 resources and ChromaDB embeddings in DynamoDB."""
     try:
         table.put_item(
             Item={
                 'product_id': product_id,
-                'chroma_id': chromadb_id
+                'chroma_id': chromadb_id,
+                'CampaignID': campaign_id  # Added the missing CampaignID key
             }
         )
         logger.info(f"DynamoDB updated for product_id {product_id}")
     except Exception as e:
         logger.error(f"Error updating DynamoDB for product_id {product_id}: {e}")
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+MAX_PROMPT_TOKENS = 10000  # Set this limit based on the model you are using
+MAX_RETRIES = 5  # Number of times to retry on rate limit errors
+RETRY_BACKOFF_FACTOR = 1.5  # Backoff factor for retries
+
+# Initialize token encoder for counting tokens
+encoder = tiktoken.get_encoding("cl100k_base")   # Use the encoding for the specific model
+
+def count_tokens(text):
+    """Count the number of tokens in a text."""
+    return len(encoder.encode(text))
+
+def truncate_text(text, max_tokens):
+    """Truncate the text to a maximum number of tokens."""
+    tokens = encoder.encode(text)
+    if len(tokens) > max_tokens:
+        tokens = tokens[:max_tokens]
+        text = encoder.decode(tokens)
+    return text
+
+def encode_image(image):
+    """Encode a PIL image as a base64 string."""
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")  # Save the image to the buffer
+    buffer.seek(0)
+    base64_image = base64.b64encode(buffer.read()).decode("utf-8")
+    return base64_image
+
 def extract_image_features(image):
-    """Extract image features using GPT-4."""
+    """Extract image features using Langchain's OpenAI and a base64-encoded image."""
     
+    # Encode the image to base64 format
+    base64_image = encode_image(image)
     
+    # Initialize the OpenAI client
+    llm = ChatOpenAI(model="gpt-4o-mini", max_tokens=300)
     
-    
-    image_description = "Placeholder image features"
-    return image_description
+    # Create the prompt asking for advice on how to describe the image
+    prompt = [
+        AIMessage(content="Generate a list of features separated by commas of the products from this photo. Generate 15 features from this image. Generate just a paragraph of words separated by commas. The features should not contain names of any brand or product. It can contain chemical names, colour, other visually identifiable features."),
+        HumanMessage(content=[
+            {"type": "text", "text": "Describe the contents of this image."},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{base64_image}"
+                },
+            },
+        ])
+    ]
+
+    try:
+        # Send the prompt to the model
+        response = llm.invoke(prompt)
+        image_description = response.content.strip()
+        return image_description
+
+    except Exception as e:
+        logger.error(f"Error in generating image features: {e}")
+        return "Error in generating image features"
+
 
 def process_product(product_id):
     """Process a single product ID: fetch data, generate embeddings, and update databases."""
@@ -96,6 +176,7 @@ def process_product(product_id):
 
     # Load image
     image_data = get_s3_file(S3_BUCKET_NAME, image_key)
+
     if not image_data:
         logger.warning(f"Skipping product_id {product_id} due to missing image.")
         return
@@ -108,6 +189,7 @@ def process_product(product_id):
 
     # Load description
     description_data = get_s3_file(S3_BUCKET_NAME, description_key)
+
     if not description_data:
         logger.warning(f"Skipping product_id {product_id} due to missing description.")
         return
@@ -120,48 +202,41 @@ def process_product(product_id):
     # Concatenate features with the description
     combined_text = f"Features: {image_features}\nDescription: {description_text}"
 
-    # Generate embeddings
-    try:
-        embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=OPENAI_API_KEY)
-        embeddings = embedding_model.embed(combined_text)
-    except Exception as e:
-        logger.error(f"Error generating embeddings for product_id {product_id}: {e}")
-        return
-
     # Store embeddings in ChromaDB
     try:
-        vector_store = Chroma(
-            collection_name="insta_posts",
-            embedding_function=embedding_model,
-            host=CHROMADB_HOST,
-            port=int(CHROMADB_PORT)
-        )
-
         metadata = {
+            "source": "insta_posts",
             "product_id": product_id,
             "image_s3_path": f"s3://{S3_BUCKET_NAME}/{image_key}",
             "description_s3_path": f"s3://{S3_BUCKET_NAME}/{description_key}"
         }
-
-        vector_store.add_texts([combined_text], metadatas=[metadata], ids=[product_id])
-        chromadb_id = product_id  # Assuming the ID used is the product_id
+    
+        # Add embeddings to ChromaDB
+        vector_store.add_texts([combined_text], metadatas=[metadata], ids=[str(product_id)])
         logger.info(f"Embeddings added to ChromaDB for product_id {product_id}")
     except Exception as e:
         logger.error(f"Error adding embeddings to ChromaDB for product_id {product_id}: {e}")
         return
-
+    
+    # Generate a unique CampaignID
+    campaign_id = str(uuid.uuid4())
+    
     # Update DynamoDB
-    update_dynamo_db(product_id, chromadb_id)
+    try:
+        update_dynamo_db(product_id, str(product_id), campaign_id)
+    except Exception as e:
+        logger.error(f"Error updating DynamoDB for product_id {product_id}: {e}")
+        return
 
 def main():
     product_ids = list_product_ids(S3_BUCKET_NAME, S3_BASE_FOLDER)
     if not product_ids:
         logger.error("No product IDs found. Exiting.")
         return
-
+    d_product_ids = product_ids[:]
     # Use ThreadPoolExecutor for concurrency
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        futures = {executor.submit(process_product, pid): pid for pid in product_ids}
+        futures = {executor.submit(process_product, pid): pid for pid in d_product_ids}
         for future in as_completed(futures):
             pid = futures[future]
             try:
