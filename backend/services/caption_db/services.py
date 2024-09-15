@@ -1,13 +1,13 @@
 import logging
 from flask import jsonify
 import boto3
-from . import captioning_bp
+from . import caption_db_bp
 from services.captioning.service import generate_marketing_captions
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1') 
 table = dynamodb.Table('campaign_storage') 
 
-@captioning_bp.route('/generate-captions/<client_id>/<product_id>', methods=['GET'])
+@caption_db_bp.route('/generate-captions/<client_id>/<product_id>', methods=['GET'])
 def generate_captions(client_id, product_id):
     """Endpoint to generate and store captions in DynamoDB."""
     try:

@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-captioning_bp = Blueprint('caption_db', __name__)
+caption_db_bp = Blueprint('caption_db', __name__)
 
 from . import service
