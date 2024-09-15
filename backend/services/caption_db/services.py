@@ -39,7 +39,7 @@ def store_captions_in_dynamodb(campaign_data):
     except Exception as e:
         logging.error(f"Error storing campaign data in DynamoDB: {str(e)}")
 
-@captioning_bp.route('/get-campaign/<campaign_id>', methods=['GET'])
+@caption_db_bp.route('/get-campaign/<campaign_id>', methods=['GET'])
 def get_campaign(campaign_id):
     """Endpoint to retrieve captions from DynamoDB by campaign ID."""
     try:
