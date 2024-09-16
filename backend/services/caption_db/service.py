@@ -22,18 +22,22 @@ def generate_captions(client_id, product_id):
     except Exception as e:
         logging.error(f"Error generating captions for client_id {client_id} and product_id {product_id}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
-def generate_campaign_id(client_id, product_id):
+
+
+def get_campaign_id(client_id, product_id):
     """Generate a unique campaign_id based on client_id and product_id."""
-    campaign_id = get_campaign_from_client(client_id, product_id)
-    return campaign_id
+    campaign = get_campaign_from_client(client_id, product_id)
+    return campaign["campaign_id"]
+
 
 def store_captions_in_dynamodb(campaign_data):
     """Stores the generated captions in DynamoDB."""
     try:
-        campaign_id = generate_campaign_id(campaign_data['client_id'], campaign_data['product_id'])
-        campaign_data['campaign_id'] = campaign_id
+        campaign_id = get_campaign_id(campaign_data['client_id'], campaign_data['product_id'])
 
+        if 'campaign_id' not in campaign_data:
+            campaign_data['campaign_id'] = campaign_id
+        
         table.put_item(Item=campaign_data)
 
         logging.info(f"Campaign data stored successfully for campaign_id {campaign_id}")
