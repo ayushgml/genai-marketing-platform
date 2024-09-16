@@ -49,10 +49,15 @@ def store_captions_in_dynamodb(campaign_data):
 def get_campaign(campaign_id):
     """Endpoint to retrieve captions from DynamoDB by campaign ID."""
     try:
-        response = table.get_item(Key={"campaign_id": campaign_id})
-        
-        if 'Item' in response:
-            return jsonify(response['Item']), 200
+        # response = table.get_item(Key={"campaign_id": campaign_id})
+        response = table.query(
+        KeyConditionExpression = "campaign_id = :cid",
+        ExpressionAttributeValues={
+            ":cid": campaign_id
+        }
+        )
+        if 'Items' in response:
+            return jsonify(response['Items']), 200
         else:
             return jsonify({"status": "error", "message": "Campaign not found"}), 404
     except Exception as e:
@@ -68,7 +73,7 @@ def get_all_captions_for_user(client_id):
     try:
         campaigns_from_rds = get_campaign_from_client_only(client_id)
         # print("Ayush")
-        print(campaigns_from_rds)
+        # print(campaigns_from_rds)
         if not campaigns_from_rds:
             return jsonify({"status": "error", "message": "No campaigns found in RDS for the given client_id"}), 404
         
@@ -85,19 +90,18 @@ def get_all_captions_for_user(client_id):
                 ":cid": campaign_id
             }
         )
-            if response['Items']:
-                item = response['Items']
-                json_obj = json.loads(item['campaign_day'][0]['hashtags'])
-                caption = json_obj['caption']
-                day = json_obj['day']
-                print(caption)
-                print(day)
-            if 'Item' in response:
-                all_campaigns.append(response['Item'])
-            else:
-                logging.warning(f"No campaign found in DynamoDB for campaign_id: {campaign_id}")
-        
-        # Step 4: Return the aggregated list of campaigns
+            # Iterating through all objects in `campaign_day`
+            for item in response['Items']:
+                campaign_days = item.get('campaign_day', [])
+                
+                for day in campaign_days:
+                    hashtags_json = json.loads(day['hashtags'])  # Convert hashtags JSON string to Python dict
+                    print(f"Day: {day['day']}")
+                    print(f"Caption: {hashtags_json['caption']}")
+                    print(f"Hashtags: {hashtags_json['hashtags']}")
+                    print() 
+                    all_campaigns.append(hashtags_json)
+            
         if all_campaigns:
             return jsonify(all_campaigns), 200
         else:
@@ -108,31 +112,75 @@ def get_all_captions_for_user(client_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-
-        
-    
 @caption_db_bp.route('/get-captions/<client_id>/<product_id>',methods=['GET'])
-def get_captions_for_product(client_id,product_id):
+def get_captions_for_user(client_id,product_id):
     """
-    Fetch all captions for a specific product (product_id) for a given user.
+    Fetch all captions corresponding to every campaign of a given user.
+
     """
     try:
-        response = table.query(
-            KeyConditionExpression = "client_id = :cid AND product_id = :pid",
-            ExpressAttributesValues={
-                ":cid": client_id,
-                ":pid": product_id
-            }
-        )
-
-        if 'campaign_day' in response and response['campaign_day']:
-            return jsonify(response['campaign_day']),200
-        else:
-            return jsonify({"status": "error", "message": "No captions found for the given product_id"}), 404
+        campaign = get_campaign_from_client(client_id,product_id)
+        # print("Ayush")
+        # print(campaigns_from_rds)
+        if not campaign:
+            return jsonify({"status": "error", "message": "No campaigns found in RDS for the given client_id"}), 404
         
+        all_campaigns = []
+        # Step 3: Iterate through each campaign_id and fetch the details from DynamoDB
+        campaign_id = campaign['campaign_id']
+        print(campaign_id)
+        # Query DynamoDB using campaign_id
+        # response = table.get_item(Key={"campaign_id": campaign_id})
+        response = table.query(
+        KeyConditionExpression = "campaign_id = :cid",
+        ExpressionAttributeValues={
+            ":cid": campaign_id
+        }
+    )
+        # Iterating through all objects in `campaign_day`
+        for item in response['Items']:
+            campaign_days = item.get('campaign_day', [])
+            
+            for day in campaign_days:
+                hashtags_json = json.loads(day['hashtags'])  # Convert hashtags JSON string to Python dict
+                print(f"Day: {day['day']}")
+                print(f"Caption: {hashtags_json['caption']}")
+                print(f"Hashtags: {hashtags_json['hashtags']}")
+                print() 
+                all_campaigns.append(hashtags_json)
+            
+        if all_campaigns:
+            return jsonify(all_campaigns), 200
+        else:
+            return jsonify({"status": "error", "message": "No campaigns found in DynamoDB for the given client_id"}), 404
+
     except Exception as e:
-        logging.error(f"Error fetching captions for product_id {product_id} and client_id {client_id}: {str(e)}")
+        logging.error(f"Error fetching campaigns for client_id {client_id}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# @caption_db_bp.route('/get-captions/<client_id>/<product_id>',methods=['GET'])
+# def get_captions_for_product(client_id,product_id):
+#     """
+#     Fetch all captions for a specific product (product_id) for a given user.
+#     """
+#     try:
+#         response = table.query(
+#             KeyConditionExpression = "client_id = :cid AND product_id = :pid",
+#             ExpressAttributesValues={
+#                 ":cid": client_id,
+#                 ":pid": product_id
+#             }
+#         )
+
+#         if 'campaign_day' in response and response['campaign_day']:
+#             return jsonify(response['campaign_day']),200
+#         else:
+#             return jsonify({"status": "error", "message": "No captions found for the given product_id"}), 404
+        
+#     except Exception as e:
+#         logging.error(f"Error fetching captions for product_id {product_id} and client_id {client_id}: {str(e)}")
+#         return jsonify({"status": "error", "message": str(e)}), 500
     
 
         
