@@ -108,29 +108,36 @@
                     <form id="postForm" class="w3-container">
                         <div class="w3-section">
                             <label class="w3-text-blue"><b>Upload Image</b></label>
-                            <input class="w3-input w3-border" type="file" id="imageUpload" accept="image/*" required>
+                            <input class="w3-input w3-border" type="file" name="image" id="imageUpload" accept="image/*" required>
                         </div>
                         <div class="w3-section">
-                            <label class="w3-text-blue"><b>Description</b></label>
-                            <textarea class="w3-input w3-border" id="description" rows="4" required></textarea>
+                            <label class="w3-text-blue"><b>Description (Text File)</b></label>
+                            <input class="w3-input w3-border" type="file" name="description" id="textFileUpload" accept=".txt" required>
                         </div>
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Campaign Days</b></label>
-                            <input class="w3-input w3-border" type="number" id="campaignDays" required>
+                        <div id="additionalFields" class="hidden">
+                            <div class="w3-section">
+                                <label class="w3-text-blue"><b>Type of Demographic</b></label>
+                                <input class="w3-input w3-border" type="text" name="demographic" id="demographic" required>
+                            </div>
+                            <div class="w3-section">
+                                <label class="w3-text-blue"><b>Campaign Type</b></label>
+                                <input class="w3-input w3-border" type="text" name="campaignType" id="campaignType" required>
+                            </div>
+                            <div class="w3-section">
+                                <label class="w3-text-blue"><b>Campaign Length (Days)</b></label>
+                                <input class="w3-input w3-border" type="number" name="campaignLength" id="campaignLength" required>
+                            </div>
                         </div>
                         <button type="button" class="w3-button w3-blue w3-padding-large w3-margin-bottom" onclick="generatePost()">Generate Post</button>
                     </form>
                 </div>
             </div>
             <div class="w3-half">
-                <!-- Preview of the generated post -->
-                <div id="postPreview" class="w3-card-4 w3-light-grey w3-padding-32" style="display:none;">
-                    <h2 class="w3-text-blue"><b>Post Preview</b></h2>
-                    <div class="w3-container">
-                        <img id="previewImage" class="w3-image" style="width:100%; max-height:300px; border:5px solid blue;">
-                        <p id="previewDescription" class="w3-margin-top"></p>
-                        <p id="previewDays" class="w3-margin-top"></p>
-                    </div>
+                <!-- Display uploaded image and fetched content here -->
+                <div id="postContent" class="w3-card-4 w3-light-grey w3-padding-32" style="display: none;">
+                    <h2 class="w3-text-blue"><b>Generated Post</b></h2>
+                    <img id="uploadedImage" src="" style="width: 100%; max-height: 300px; object-fit: cover;">
+                    <p id="fetchedContent"></p>
                 </div>
             </div>
         </div>
@@ -166,7 +173,102 @@
     <p class="w3-right">&copy; 2024 PostFusion Studio. All rights reserved.</p>
 </div>
 
-<script src="script.js"></script>
+<script>
+// Handle image file upload
+document.getElementById('imageUpload').addEventListener('change', function(event) {
+    window.imageFile = event.target.files[0];
+});
+
+// Handle text file upload
+document.getElementById('textFileUpload').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file && file.type === 'text/plain') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            window.descriptionFile = file; // Store the file itself
+        };
+        reader.readAsText(file);
+    } else {
+        alert('Please upload a valid text file.');
+    }
+});
+
+// Function to generate post
+function generatePost() {
+    console.log('generatePost called');
+    var imageFile = window.imageFile; // Use the global variable
+    var descriptionFile = window.descriptionFile; // Use the global variable
+
+    console.log('Image File:', imageFile);
+    console.log('Description File:', descriptionFile);
+
+    if (!imageFile || !descriptionFile) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    var formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('description', descriptionFile);
+
+    var uploadUrl = 'http://54.237.169.87:5000/user_upload/upload/2020';
+
+    fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        alert('Files uploaded successfully!');
+        document.getElementById('additionalFields').classList.remove('hidden'); // Show additional fields
+
+        // Set the image src for display
+        var imageUrl = URL.createObjectURL(imageFile);
+        document.getElementById('uploadedImage').src = imageUrl;
+        document.getElementById('postContent').style.display = 'block';
+
+        // Now make the GET request to fetch the content
+        var getUrl = 'http://54.237.169.87:5000/caption_db/generate-captions/2020/89002df9-46d1-4ffc-876e-9b93289c4e8a';
+
+        fetch(getUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log('GET Request Success:', data);
+            document.getElementById('fetchedContent').textContent = data.caption; // Adjust based on actual response format
+        })
+        .catch((error) => {
+            console.error('GET Request Error:', error);
+            alert('There was an error fetching the content.');
+        });
+
+    })
+    .catch((error) => {
+        console.error('Upload Error:', error);
+        alert('There was an error uploading the files.');
+    });
+}
+
+// Script to open and close sidebar
+function w3_open() {
+    document.getElementById("mySidebar").style.display = "block";
+    document.getElementById("myOverlay").style.display = "block";
+}
+
+function w3_close() {
+    document.getElementById("mySidebar").style.display = "none";
+    document.getElementById("myOverlay").style.display = "none";
+}
+
+// Modal Image Gallery
+function onClick(element) {
+    document.getElementById("img01").src = element.src;
+    document.getElementById("modal01").style.display = "block";
+    var captionText = document.getElementById("caption");
+    captionText.innerHTML = element.alt;
+}
+
+</script>
 
 </body>
 </html>

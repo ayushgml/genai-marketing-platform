@@ -7,11 +7,15 @@ from services.fetching import fetch_bp
 from services.caption_db import caption_db_bp
 from services.campaign import campaign_bp
 from services.user_upload import user_upload_bp
-
+from flask_cors import CORS
+ 
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"/*": {"origins": "*", "methods":["GET","POST","DELETE","PUT","OPTIONS"],"allow_headers":["Content-Type", "Authorization"]}})
+ 
+ 
     app.config.from_object(Config)
-
+ 
     # Register blueprints
     app.register_blueprint(embedding_bp, url_prefix='/embedding')
     app.register_blueprint(retriever_bp, url_prefix='/retriever')
@@ -20,5 +24,5 @@ def create_app():
     app.register_blueprint(fetch_bp, url_prefix='/fetching')
     app.register_blueprint(campaign_bp, url_prefix='/campaign')
     app.register_blueprint(user_upload_bp, url_prefix='/user_upload')
-
+ 
     return app

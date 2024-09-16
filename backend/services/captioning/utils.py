@@ -18,13 +18,50 @@ s3 = boto3.client('s3', region_name=Config.AWS_REGION)
 # OpenAI client for generating captions
 llm = ChatOpenAI(model="gpt-4", openai_api_key=Config.OPENAI_API_KEY, max_tokens=4096)
 
+# def fetch_product_data(client_id, product_id):
+#     """Fetch the image and description from S3 for a given product."""
+
+#     image_key = f"client_uploads/{client_id}/{product_id}/image.jpg"
+#     description_key = f"client_uploads/{client_id}/{product_id}/description.txt"
+
+#     image_data = get_s3_file(Config.S3_BUCKET_NAME, image_key)
+#     description_data = get_s3_file(Config.S3_BUCKET_NAME, description_key)
+
+#     if not image_data or not description_data:
+#         logger.error(f"Missing image or description for client_id {client_id} and product_id {product_id}")
+#         return None, None
+
+#     description_text = description_data.decode('utf-8')
+
+#     try:
+#         image = Image.open(io.BytesIO(image_data))
+#     except Exception as e:
+#         logger.error(f"Error opening image for client_id {client_id} and product_id {product_id}: {e}")
+#         return None, None
+
+#     campaign_data = get_campaign_from_client(client_id, product_id)
+#     print(campaign_data)
+#     return image, description_text, campaign_data["campaign_type"], campaign_data["target_demographic"], campaign_data["length"]
+
+
 def fetch_product_data(client_id, product_id):
-    """Fetch the image and description from S3 for a given product."""
-    
-    image_key = f"client_uploads/{client_id}/{product_id}/image.png"
+    """Fetch the image and description from S3 for a given product, supporting both .jpg and .png formats."""
+
+    # Define possible image formats
+    image_keys = [
+        f"client_uploads/{client_id}/{product_id}/image.jpg",
+        f"client_uploads/{client_id}/{product_id}/image.png"
+    ]
+
     description_key = f"client_uploads/{client_id}/{product_id}/description.txt"
-    
-    image_data = get_s3_file(Config.S3_BUCKET_NAME, image_key)
+
+    # Try fetching the image for each possible key
+    image_data = None
+    for image_key in image_keys:
+        image_data = get_s3_file(Config.S3_BUCKET_NAME, image_key)
+        if image_data:
+            break
+
     description_data = get_s3_file(Config.S3_BUCKET_NAME, description_key)
 
     if not image_data or not description_data:
@@ -32,7 +69,7 @@ def fetch_product_data(client_id, product_id):
         return None, None
 
     description_text = description_data.decode('utf-8')
-    
+
     try:
         image = Image.open(io.BytesIO(image_data))
     except Exception as e:
@@ -40,8 +77,10 @@ def fetch_product_data(client_id, product_id):
         return None, None
 
     campaign_data = get_campaign_from_client(client_id, product_id)
+    print(campaign_data)
 
     return image, description_text, campaign_data["campaign_type"], campaign_data["target_demographic"], campaign_data["length"]
+
 
 def generate_captions_from_context(query, context, campaign_type, demographic, length):
     """Generate 7 days worth of captions and hashtags based on query and context."""
@@ -77,16 +116,16 @@ def generate_captions_from_context(query, context, campaign_type, demographic, l
 
 def generate_marketing_captions(client_id, product_id):
     """Main function to generate 7 days of Instagram captions and hashtags."""
-    
+
     # Fetch product data from S3
     image, description_text, campaign_type, demographic, length = fetch_product_data(client_id, product_id)
-    
+
     if not image or not description_text:
         return None
 
     # Extract image features
     image_features = extract_image_features(image)
-    
+
     # Combine image features with the product description
     combined_text = f"Features: {image_features}\nDescription: {description_text}"
 
@@ -105,3 +144,4 @@ def generate_marketing_captions(client_id, product_id):
         "product_id": product_id,
         "campaign_day": captions
     }
+ 
