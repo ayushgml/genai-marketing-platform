@@ -5,7 +5,7 @@ from services.retriever import retriever_bp
 from services.captioning import captioning_bp
 from services.fetching import fetch_bp
 from services.caption_db import caption_db_bp
-from services.storing_to_s3 import storing_bp
+from services.saving_data import saving_bp
 
 def create_app():
     app = Flask(__name__)
@@ -17,6 +17,5 @@ def create_app():
     app.register_blueprint(captioning_bp, url_prefix='/captioning')
     app.register_blueprint(caption_db_bp, url_prefix = '/caption_db')
     app.register_blueprint(fetch_bp, url_prefix='/fetching')
-    app.register_blueprint(storing_bp, url_prefix='/storing_to_s3')
 
     return app
