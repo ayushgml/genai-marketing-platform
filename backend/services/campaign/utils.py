@@ -80,7 +80,7 @@ def insert_record_into_rds(record):
 
 def insert_record_into_db(record, client_id, product_id):
     """Inserts a single record into the 'campaign_data' table in PostgreSQL RDS, generating a unique campaign_id."""
-    
+    print("ram")
     # Generate a unique campaign_id using uuid4
     campaign_id = str(uuid.uuid4())
     
@@ -165,6 +165,54 @@ def get_campaign_from_client(client_id, product_id):
                 "target_demographic": result[5]
             }
             return result_json
+        else:
+            logger.error("Campaign record not found.")
+            return None
+        
+    except Exception as e:
+        logger.error(f"Error retrieving campaign record: {e}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+def get_campaign_from_client_only(client_id):
+    """Retrieves a campaign record from the 'campaign_data' table in PostgreSQL RDS based on client_id ."""
+
+    select_sql = """
+    SELECT * FROM campaign_data
+    WHERE client_id = %s
+    """
+    conn = None
+    
+    try:
+        # Connection details
+        conn = psycopg2.connect(
+            host=Config.RDS_HOST,
+            database=Config.RDS_DBNAME,
+            user=Config.RDS_USER,
+            password=Config.RDS_PASSWORD,
+            port=Config.RDS_PORT
+        )
+        
+        # Execute the SELECT query
+        cur = conn.cursor()
+        cur.execute(select_sql, (client_id,))
+        
+        # Fetch the result
+        result = cur.fetchall()
+        if result:
+            result_jsons = []
+            for r in result:
+                result_jsons.append({
+                    "client_id": r[0],
+                    "prod_id": r[1],
+                    "campaign_id": r[2],
+                    "campaign_type": r[3],
+                    "length": r[4],
+                    "target_demographic": r[5]
+                })
+            print(result_jsons)
+            return result_jsons
         else:
             logger.error("Campaign record not found.")
             return None
