@@ -97,44 +97,55 @@
         <p>We’re a passionate team of tech enthusiasts and creative professionals dedicated to revolutionizing digital marketing for startups. With a blend of expertise in advanced technologies such as Amazon EC2, DynamoDB, GenAI, and LangChain models, we transform product images and descriptions into engaging Instagram posts that help our clients shine in the crowded marketplace. Our commitment to innovation and efficiency drives us to deliver cost-effective solutions that enhance brand visibility and foster growth. Together, we’re here to support your journey and make your product stand out effortlessly.</p>
     </div>
 
-    <!-- Post Generator -->
-    <div class="w3-container" id="productPost" style="margin-top:75px">
-        <h1 class="w3-xxxlarge w3-text-blue"><b>Post Generator.</b></h1>
-        <hr style="width:50px;border:5px solid #2196F3; border-radius:8px;" class="w3-round">
-        <div class="w3-row-padding">
-            <div class="w3-half w3-margin-bottom">
-                <!-- Form to input product details -->
-                <div class="w3-card-4 w3-light-grey w3-padding-32">
-                    <form id="postForm" class="w3-container">
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Upload Image</b></label>
-                            <input class="w3-input w3-border" type="file" id="imageUpload" accept="image/*" required>
-                        </div>
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Description</b></label>
-                            <textarea class="w3-input w3-border" id="description" rows="4" required></textarea>
-                        </div>
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Campaign Days</b></label>
-                            <input class="w3-input w3-border" type="number" id="campaignDays" required>
-                        </div>
-                        <button type="button" class="w3-button w3-blue w3-padding-large w3-margin-bottom" onclick="generatePost()">Generate Post</button>
-                    </form>
-                </div>
-            </div>
-            <div class="w3-half">
-                <!-- Preview of the generated post -->
-                <div id="postPreview" class="w3-card-4 w3-light-grey w3-padding-32" style="display:none;">
-                    <h2 class="w3-text-blue"><b>Post Preview</b></h2>
-                    <div class="w3-container">
-                        <img id="previewImage" class="w3-image" style="width:100%; max-height:300px; border:5px solid blue;">
-                        <p id="previewDescription" class="w3-margin-top"></p>
-                        <p id="previewDays" class="w3-margin-top"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Post Generator -->
+<div class="w3-container" id="productPost" style="margin-top:75px">
+  <h1 class="w3-xxxlarge w3-text-blue"><b>Post Generator.</b></h1>
+  <hr style="width:50px;border:5px solid #2196F3; border-radius:8px;" class="w3-round">
+  <div class="w3-row-padding">
+      <div class="w3-half w3-margin-bottom">
+          <!-- Form to input product details -->
+          <div class="w3-card-4 w3-light-grey w3-padding-32">
+              <form id="postForm" class="w3-container">
+                  <div class="w3-section">
+                      <label class="w3-text-blue"><b>Upload Image</b></label>
+                      <input class="w3-input w3-border" type="file" name="image" id="imageUpload" accept="image/*" required>
+                  </div>
+                  <div class="w3-section">
+                      <label class="w3-text-blue"><b>Description (Text File)</b></label>
+                      <input class="w3-input w3-border" type="file" name="description" id="textFileUpload" accept=".txt" required>
+                  </div>
+                  <div id="additionalFields" class="hidden">
+                      <div class="w3-section">
+                          <label class="w3-text-blue"><b>Type of Demographic</b></label>
+                          <input class="w3-input w3-border" type="text" name="demographic" id="demographic" required>
+                      </div>
+                      <div class="w3-section">
+                          <label class="w3-text-blue"><b>Campaign Type</b></label>
+                          <input class="w3-input w3-border" type="text" name="campaignType" id="campaignType" required>
+                      </div>
+                      <div class="w3-section">
+                          <label class="w3-text-blue"><b>Campaign Length (Days)</b></label>
+                          <input class="w3-input w3-border" type="number" name="campaignLength" id="campaignLength" required>
+                      </div>
+                  </div>
+                  <button type="button" class="w3-button w3-blue w3-padding-large w3-margin-bottom" onclick="generatePost()">Generate Post</button>
+              </form>
+          </div>
+      </div>
+      <div class="w3-half">
+          <!-- Display uploaded image and fetched content here -->
+          <div id="postContent" class="w3-card-4 w3-light-grey w3-padding-32" style="display: none;">
+              <h2 class="w3-text-blue"><b>Generated Post</b></h2>
+              <img id="uploadedImage" src="" style="width: 100%; max-height: 300px; object-fit: cover;">
+              <div id="contentSection">
+                  <pre id="fetchedContent"></pre> <!-- Use <pre> for preformatted text -->
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+
+
 
     <!-- Contact -->
     <div class="w3-container" id="contact" style="margin-top:75px">
@@ -166,7 +177,162 @@
     <p class="w3-right">&copy; 2024 PostFusion Studio. All rights reserved.</p>
 </div>
 
-<script src="script.js"></script>
+<script>
+// Handle image file upload
+document.getElementById('imageUpload').addEventListener('change', function(event) {
+    window.imageFile = event.target.files[0];
+});
+
+// Handle text file upload
+document.getElementById('textFileUpload').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file && file.type === 'text/plain') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            window.descriptionFile = file; // Store the file itself
+        };
+        reader.readAsText(file);
+    } else {
+        alert('Please upload a valid text file.');
+    }
+});
+
+// Function to generate post
+function generatePost() {
+    console.log('generatePost called');
+    var imageFile = window.imageFile; // Use the global variable
+    var descriptionFile = window.descriptionFile; // Use the global variable
+
+    console.log('Image File:', imageFile);
+    console.log('Description File:', descriptionFile);
+
+    if (!imageFile || !descriptionFile) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    var formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('description', descriptionFile);
+
+    var uploadUrl = 'http://54.237.169.87:5000/user_upload/upload/2020';
+
+    fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Upload Success:', data);
+        alert('Files uploaded successfully!');
+        document.getElementById('additionalFields').classList.remove('hidden'); // Show additional fields
+
+        // Now make the POST request with the additional fields
+        var campaignType = document.getElementById('campaignType').value;
+        var campaignLength = document.getElementById('campaignLength').value;
+        var targetDemographic = document.getElementById('demographic').value;
+
+        if (!campaignType || !campaignLength || !targetDemographic) {
+            alert("Please fill in all additional fields.");
+            return;
+        }
+
+        var additionalData = {
+            campaign_type: campaignType,
+            length: campaignLength,
+            target_demographic: targetDemographic
+        };
+
+        var campaignUrl = 'http://54.237.169.87:5000/campaign/generate-campaign/234/234';
+
+        return fetch(campaignUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(additionalData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Campaign Data Success:', data);
+            alert('Campaign generated successfully!');
+
+            // Make the GET request to fetch the post content
+            var captionUrl = 'http://54.237.169.87:5000/caption_db/generate-captions/2025/dbc77b48-ebcb-4ee9-8b1a-13bc57546fe8';
+
+            return fetch(captionUrl, {
+                method: 'GET', // Explicitly specify GET method
+                headers: {
+                    'Content-Type': 'application/json' // Optional, adjust as needed
+                }
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Caption Data Success:', data);
+
+            // Display results
+            document.getElementById('postContent').style.display = 'block'; // Show the postContent container
+            document.getElementById('uploadedImage').src = URL.createObjectURL(imageFile); // Display the uploaded image
+
+            // Clear previous content
+            const fetchedContent = document.getElementById('fetchedContent');
+            fetchedContent.textContent = '';
+
+            // Extract day and caption from each campaign day object
+            data.campaign_day.forEach(day => {
+                // Parse hashtags to get day and caption
+                const hashtags = JSON.parse(day.hashtags);
+                const dayText = hashtags.day;
+                const captionText = hashtags.caption;
+
+                // Create a formatted display for each day
+                const dayElement = document.createElement('div');
+                dayElement.textContent = `Day: ${dayText}`;
+                fetchedContent.appendChild(dayElement);
+
+                const captionElement = document.createElement('div');
+                captionElement.textContent = `Caption: ${captionText}`;
+                fetchedContent.appendChild(captionElement);
+
+                // Add a line break for separation
+                fetchedContent.appendChild(document.createElement('br'));
+            });
+        })
+        .catch((error) => {
+            console.error('GET Request Error:', error);
+            alert('There was an error fetching the content.');
+        });
+
+    })
+    .catch((error) => {
+        console.error('Upload Error:', error);
+        alert('There was an error uploading the files.');
+    });
+}
+
+
+// Script to open and close sidebar
+function w3_open() {
+    document.getElementById("mySidebar").style.display = "block";
+    document.getElementById("myOverlay").style.display = "block";
+}
+
+function w3_close() {
+    document.getElementById("mySidebar").style.display = "none";
+    document.getElementById("myOverlay").style.display = "none";
+}
+
+// Modal Image Gallery
+function onClick(element) {
+    document.getElementById("img01").src = element.src;
+    document.getElementById("modal01").style.display = "block";
+    var captionText = document.getElementById("caption");
+    captionText.innerHTML = element.alt;
+}
+
+
+</script>
 
 </body>
 </html>
