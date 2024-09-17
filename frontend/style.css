@@ -1,18 +1,52 @@
 body, h1, h2, h3, h4, h5 {
     font-family: "Poppins", sans-serif;
 }
-
+ 
 body {
     font-size: 16px;
 }
-
+ 
 .w3-half img {
     margin-bottom: -6px;
     margin-top: 16px;
     opacity: 0.8;
     cursor: pointer;
 }
-
+ 
 .w3-half img:hover {
     opacity: 1;
 }
+ 
+.hidden {
+    display: none;
+}
+ 
+/* Ensure this CSS is added to style.css or a <style> tag in the head section */
+ 
+#postContent {
+    overflow: hidden; /* Prevent content overflow */
+    padding: 16px; /* Add padding around the content */
+    background-color: #f9f9f9; /* Light background for contrast */
+    border-radius: 8px; /* Rounded corners */
+}
+ 
+#uploadedImage {
+    display: block; /* Ensure the image block is visible */
+    margin-bottom: 16px; /* Space between the image and caption */
+    border-radius: 8px; /* Rounded corners for the image */
+}
+ 
+#fetchedContent {
+    font-family: 'Poppins', sans-serif; /* Font for text */
+    font-size: 16px; /* Font size */
+    color: #333; /* Text color */
+}
+ 
+#fetchedContent div {
+    margin-bottom: 8px; /* Space between each item */
+}
+ 
+#fetchedContent br {
+    display: none; /* Hide default line breaks */
+}
+ 

@@ -1,3 +1,4 @@
+/*NEW PRODUCT*/
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +10,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
+ 
 <!-- Sidebar/menu -->
 <nav class="w3-sidebar w3-blue w3-collapse w3-top w3-large w3-padding" style="z-index:3;width:300px;font-weight:bold;" id="mySidebar"><br>
     <a href="javascript:void(0)" onclick="w3_close()" class="w3-button w3-hide-large w3-display-topleft" style="width:100%;font-size:22px">Close Menu</a>
@@ -17,34 +18,34 @@
         <h3 class="w3-padding-64"><b>PostFusion Studio</b></h3>
     </div>
     <div class="w3-bar-block">
-        <a href="#" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Home</a> 
-        <a href="#showcase" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Showcase</a> 
-        <a href="#services" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Services</a> 
-        <a href="#designers" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Designers</a> 
-        <a href="#productPost" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Post Generator</a> 
+        <a href="#" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Home</a>
+        <a href="#showcase" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Showcase</a>
+        <a href="#services" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Services</a>
+        <a href="#designers" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Designers</a>
+        <a href="#productPost" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Post Generator</a>
         <a href="#contact" onclick="w3_close()" class="w3-bar-item w3-button w3-hover-white">Contact</a>
     </div>
 </nav>
-
+ 
 <!-- Top menu on small screens -->
 <header class="w3-container w3-top w3-hide-large w3-blue w3-xlarge w3-padding">
     <a href="javascript:void(0)" class="w3-button w3-blue w3-margin-right" onclick="w3_open()">☰</a>
     <span>PostFusion Studio</span>
 </header>
-
+ 
 <!-- Overlay effect when opening sidebar on small screens -->
 <div class="w3-overlay w3-hide-large" onclick="w3_close()" style="cursor:pointer" title="close side menu" id="myOverlay"></div>
-
+ 
 <!-- !PAGE CONTENT! -->
 <div class="w3-main" style="margin-left:340px;margin-right:40px">
-
+ 
     <!-- Header -->
     <div class="w3-container" style="margin-top:80px" id="showcase">
         <h1 class="w3-jumbo"><b>Post Design</b></h1>
         <h1 class="w3-xxxlarge w3-text-blue"><b>Showcase.</b></h1>
         <hr style="width:50px;border:5px solid #2196F3; border-radius:8px;" class="w3-round">
     </div>
-
+ 
     <!-- Photo grid (modal) -->
     <div class="w3-row-padding">
         <div class="w3-half">
@@ -52,14 +53,14 @@
             <img src="images/img2.jpg" style="width:90%" onclick="onClick(this)" alt="Light, white and tight scandinavian design">
             <img src="images/img3.jpg" style="width:90%" onclick="onClick(this)" alt="White walls with designer chairs">
         </div>
-
+ 
         <div class="w3-half">
             <img src="images/img4.jpg" style="width:90%" onclick="onClick(this)" alt="Windows for the atrium">
             <img src="images/img5.jpg" style="width:90%" onclick="onClick(this)" alt="Bedroom and office in one space">
             <img src="images/img6.jpg" style="width:90%" onclick="onClick(this)" alt="Scandinavian design">
         </div>
     </div>
-
+ 
     <!-- Modal for full size images on click-->
     <div id="modal01" class="w3-modal w3-black" style="padding-top:0" onclick="this.style.display='none'">
         <span class="w3-button w3-black w3-xxlarge w3-display-topright">×</span>
@@ -68,7 +69,7 @@
             <p id="caption"></p>
         </div>
     </div>
-
+ 
     <!-- Services -->
     <div class="w3-container" id="services" style="margin-top:75px;">
         <h1 class="w3-xxxlarge w3-text-blue"><b>Services.</b></h1>
@@ -88,7 +89,7 @@
         </ul>
         <p class="w3-margin-top">Ready to elevate your brand? Contact us today to get started!</p>
     </div>
-
+ 
     <!-- Designers -->
     <div class="w3-container" id="designers" style="margin-top:75px">
         <h1 class="w3-xxxlarge w3-text-blue"><b>Designers.</b></h1>
@@ -96,46 +97,60 @@
         <p>The best team in the world.</p>
         <p>We’re a passionate team of tech enthusiasts and creative professionals dedicated to revolutionizing digital marketing for startups. With a blend of expertise in advanced technologies such as Amazon EC2, DynamoDB, GenAI, and LangChain models, we transform product images and descriptions into engaging Instagram posts that help our clients shine in the crowded marketplace. Our commitment to innovation and efficiency drives us to deliver cost-effective solutions that enhance brand visibility and foster growth. Together, we’re here to support your journey and make your product stand out effortlessly.</p>
     </div>
-
-    <!-- Post Generator -->
-    <div class="w3-container" id="productPost" style="margin-top:75px">
-        <h1 class="w3-xxxlarge w3-text-blue"><b>Post Generator.</b></h1>
-        <hr style="width:50px;border:5px solid #2196F3; border-radius:8px;" class="w3-round">
-        <div class="w3-row-padding">
-            <div class="w3-half w3-margin-bottom">
-                <!-- Form to input product details -->
-                <div class="w3-card-4 w3-light-grey w3-padding-32">
-                    <form id="postForm" class="w3-container">
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Upload Image</b></label>
-                            <input class="w3-input w3-border" type="file" id="imageUpload" accept="image/*" required>
-                        </div>
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Description</b></label>
-                            <textarea class="w3-input w3-border" id="description" rows="4" required></textarea>
-                        </div>
-                        <div class="w3-section">
-                            <label class="w3-text-blue"><b>Campaign Days</b></label>
-                            <input class="w3-input w3-border" type="number" id="campaignDays" required>
-                        </div>
-                        <button type="button" class="w3-button w3-blue w3-padding-large w3-margin-bottom" onclick="generatePost()">Generate Post</button>
-                    </form>
-                </div>
-            </div>
-            <div class="w3-half">
-                <!-- Preview of the generated post -->
-                <div id="postPreview" class="w3-card-4 w3-light-grey w3-padding-32" style="display:none;">
-                    <h2 class="w3-text-blue"><b>Post Preview</b></h2>
-                    <div class="w3-container">
-                        <img id="previewImage" class="w3-image" style="width:100%; max-height:300px; border:5px solid blue;">
-                        <p id="previewDescription" class="w3-margin-top"></p>
-                        <p id="previewDays" class="w3-margin-top"></p>
+ 
+<!-- Post Generator -->
+<div class="w3-container" id="productPost" style="margin-top:75px">
+    <h1 class="w3-xxxlarge w3-text-blue"><b>Post Generator.</b></h1>
+    <hr style="width:50px;border:5px solid #2196F3; border-radius:8px;" class="w3-round">
+    <div class="w3-row-padding">
+        <div class="w3-half w3-margin-bottom">
+            <!-- Form to input product details -->
+            <div class="w3-card-4 w3-light-grey w3-padding-32">
+                <form id="postForm" class="w3-container">
+                    <div class="w3-section">
+                        <label class="w3-text-blue"><b>Upload Image</b></label>
+                        <input class="w3-input w3-border" type="file" name="image" id="imageUpload" accept="image/*" required>
                     </div>
-                </div>
+                    <div class="w3-section">
+                        <label class="w3-text-blue"><b>Description (Text File)</b></label>
+                        <input class="w3-input w3-border" type="file" name="description" id="textFileUpload" accept=".txt" required>
+                    </div>
+                    <div id="additionalFields" class="hidden">
+                        <div class="w3-section">
+                            <label class="w3-text-blue"><b>Type of Demographic</b></label>
+                            <input class="w3-input w3-border" type="text" name="demographic" id="demographic" required>
+                        </div>
+                        <div class="w3-section">
+                            <label class="w3-text-blue"><b>Campaign Type</b></label>
+                            <input class="w3-input w3-border" type="text" name="campaignType" id="campaignType" required>
+                        </div>
+                        <div class="w3-section">
+                            <label class="w3-text-blue"><b>Campaign Length (Days)</b></label>
+                            <input class="w3-input w3-border" type="number" name="campaignLength" id="campaignLength" required>
+                        </div>
+                    </div>
+                    <button type="button" class="w3-button w3-blue w3-padding-large w3-margin-bottom" onclick="uploadImage()">Upload Image</button>
+                    <button type="button" class="w3-button w3-green w3-padding-large w3-margin-bottom" onclick="getCampaignDetails()">Get Campaign</button>
+                </form>
             </div>
         </div>
+        <div class="w3-half">
+            <!-- Display uploaded image and fetched content here -->
+            <div id="postContent" class="w3-card-4 w3-light-grey w3-padding-32" style="display: none;">
+              <h2 class="w3-text-blue"><b>Generated Post</b></h2>
+              <img id="uploadedImage" src="" style="width: 100%; max-height: 300px; object-fit: cover;">
+              <div id="contentSection">
+                  <div id="fetchedContent"></div> <!-- Changed <pre> to <div> for better control -->
+              </div>
+          </div>
+         
+        </div>
     </div>
-
+  </div>
+ 
+ 
+ 
+ 
     <!-- Contact -->
     <div class="w3-container" id="contact" style="margin-top:75px">
         <h1 class="w3-xxxlarge w3-text-blue"><b>Contact.</b></h1>
@@ -157,16 +172,204 @@
             <button type="submit" class="w3-button w3-block w3-padding-large w3-blue w3-margin-bottom">Send Message</button>
         </form>  
     </div>
-
+ 
     <!-- End page content -->
 </div>
-
+ 
 <!-- W3.CSS Container -->
 <div class="w3-light-grey w3-container w3-padding-32" style="margin-top:75px;padding-right:58px">
     <p class="w3-right">&copy; 2024 PostFusion Studio. All rights reserved.</p>
 </div>
-
-<script src="script.js"></script>
-
+ 
+ 
+ 
+ 
+<script>
+    // Handle image file upload
+    document.getElementById('imageUpload').addEventListener('change', function(event) {
+        window.imageFile = event.target.files[0];
+    });
+   
+    // Handle text file upload
+    document.getElementById('textFileUpload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file && file.type === 'text/plain') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                window.descriptionFile = file; // Store the file itself
+            };
+            reader.readAsText(file);
+        } else {
+            alert('Please upload a valid text file.');
+        }
+    });
+   
+    // Function to upload image
+    function uploadImage() {
+        console.log('uploadImage called');
+        var imageFile = window.imageFile; // Use the global variable
+        var descriptionFile = window.descriptionFile; // Use the global variable
+   
+        console.log('Image File:', imageFile);
+        console.log('Description File:', descriptionFile);
+   
+        if (!imageFile || !descriptionFile) {
+            alert("Please upload both an image and a description file.");
+            return;
+        }
+   
+        var formData = new FormData();
+        formData.append('image', imageFile);
+        formData.append('description', descriptionFile);
+   
+        var uploadUrl = 'http://54.237.169.87:5000/user_upload/upload/2032';
+   
+        fetch(uploadUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Upload Success:', data);
+            alert('Files uploaded successfully!');
+            document.getElementById('additionalFields').classList.remove('hidden'); // Show additional fields
+   
+            window.productId = data.product_id
+            console.log("product_id", data.product_id);
+   
+            // Check if the product_id is present
+            if (!data.product_id) {
+                alert("Product ID not found in upload response.");
+                return;
+            }
+        })
+        .catch((error) => {
+            console.error('Upload Error:', error);
+            alert('There was an error uploading the files.');
+        });
+    }
+   
+    // Function to get campaign details
+    function getCampaignDetails() {
+        console.log('getCampaignDetails called');
+   
+        // Retrieve the product_id from the global variable
+        var productId = window.productId;
+        console.log("product id:", productId);
+       
+        // Check if the product_id is present
+        if (!productId) {
+            alert("No product ID found. Please upload an image first.");
+            return;
+        }
+   
+        // Gather additional data
+        var campaignType = document.getElementById('campaignType').value;
+        var campaignLength = document.getElementById('campaignLength').value;
+        var targetDemographic = document.getElementById('demographic').value;
+   
+        if (!campaignType || !campaignLength || !targetDemographic) {
+            alert("Please fill in all additional fields.");
+            return;
+        }
+   
+        var additionalData = {
+            campaign_type: campaignType,
+            length: campaignLength,
+            target_demographic: targetDemographic
+        };
+   
+        console.log("campaign product id:", productId);
+ 
+        var campaignUrl = `http://54.237.169.87:5000/campaign/generate-campaign/2032/${productId}`;
+   
+        fetch(campaignUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(additionalData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Campaign Data Success:', data);
+            alert('Campaign generated successfully!');
+   
+            // Add a 2-second delay before fetching the caption content
+            setTimeout(() => {
+                console.log("caption product id:", productId);
+                var captionUrl = `http://54.237.169.87:5000/caption_db/generate-captions/2032/${productId}`;
+               
+                fetch(captionUrl, {
+                    method: 'GET', // Explicitly specify GET method
+                    headers: {
+                        'Content-Type': 'application/json' // Optional, adjust as needed
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Caption Data Success:', data);
+   
+                    document.getElementById('postContent').style.display = 'block';
+                    // Display the uploaded image
+                    document.getElementById('uploadedImage').src = URL.createObjectURL(window.imageFile);
+   
+                    // Clear previous content
+                    const fetchedContent = document.getElementById('fetchedContent');
+                    fetchedContent.textContent = '';
+   
+                    // Extract day and caption from each campaign day object
+                    data.campaign_day.forEach(day => {
+                        // Parse hashtags to get day and caption
+                        const hashtags = JSON.parse(day.hashtags || '{}');
+                        const dayText = hashtags.day || day.day;
+                        const captionText = hashtags.caption || day.caption;
+   
+                        // Create a formatted display for each day
+                        const dayElement = document.createElement('div');
+                        dayElement.innerHTML = `<strong style="color: #2196F3;">${dayText}</strong>`;
+                        fetchedContent.appendChild(dayElement);
+   
+                        const captionElement = document.createElement('div');
+                        captionElement.innerHTML = `<strong>Caption:</strong> ${captionText}`;
+                        fetchedContent.appendChild(captionElement);
+   
+                        // Add a line break for separation
+                        fetchedContent.appendChild(document.createElement('br'));
+                    });
+                })
+                .catch((error) => {
+                    console.error('GET Request Error:', error);
+                    alert('There was an error fetching the content.');
+                });
+            }, 2000); // 2000 milliseconds = 2 seconds
+        })
+        .catch((error) => {
+            console.error('GET Request Error:', error);
+            alert('There was an error fetching the content.');
+        });
+    }
+   
+    // Script to open and close sidebar
+    function w3_open() {
+        document.getElementById("mySidebar").style.display = "block";
+        document.getElementById("myOverlay").style.display = "block";
+    }
+   
+    function w3_close() {
+        document.getElementById("mySidebar").style.display = "none";
+        document.getElementById("myOverlay").style.display = "none";
+    }
+   
+    // Modal Image Gallery
+    function onClick(element) {
+        document.getElementById("img01").src = element.src;
+        document.getElementById("modal01").style.display = "block";
+        var captionText = document.getElementById("caption");
+        captionText.innerHTML = element.alt;
+    }
+    </script>
+   
+ 
 </body>
 </html>
