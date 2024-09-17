@@ -1,5 +1,5 @@
 import logging
-from flask import jsonify, request
+from flask import jsonify, request, make_response
 from . import campaign_bp
 from .utils import insert_record_into_db, get_campaign_from_client
 
@@ -8,11 +8,11 @@ from .utils import insert_record_into_db, get_campaign_from_client
 def generate_campaign(client_id, product_id):
     try:
         print("devi")
-        result = insert_record_into_db(request.json, client_id, product_id)
-        if result:
-            return jsonify(result), 200
-        else:
-            return jsonify({"status": "error", "message": "Campaign generation failed"}), 500
+        body = request.get_json(force=True)
+        result = insert_record_into_db(body, client_id, product_id)
+        res = make_response(jsonify(result), 200)
+        res.headers['Access-Control-Allow-Origin'] = "*"
+        return res
     except Exception as e:
         logging.error(f"Error generating campaign for client_id {client_id} and product_id {product_id}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500

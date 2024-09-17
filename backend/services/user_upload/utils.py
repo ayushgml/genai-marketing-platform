@@ -25,7 +25,7 @@ def handle_user_file_upload(user_id):
     """Handle the uploading of a description file and an image file."""
     # Generate a unique product_id using UUID
     product_id = str(uuid.uuid4())
-
+    print(request)
     description_file = request.files.get('description')
     image_file = request.files.get('image')
 

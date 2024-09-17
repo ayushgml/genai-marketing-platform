@@ -1,5 +1,5 @@
 import logging
-from flask import jsonify
+from flask import jsonify, make_response, request
 import boto3
 from . import caption_db_bp
 from app.config import Config
@@ -10,16 +10,25 @@ import json
 dynamodb = boto3.resource('dynamodb', region_name=Config.AWS_REGION) 
 table = dynamodb.Table(Config.DYNAMODB_CAMPAIGNS_TABLE_NAME) 
 
-@caption_db_bp.route('/generate-captions/<client_id>/<product_id>', methods=['GET'])
+@caption_db_bp.route('/generate-captions/<client_id>/<product_id>', methods=['GET', 'POST', 'OPTIONS'])
 def generate_captions(client_id, product_id):
     """Endpoint to generate and store captions in DynamoDB."""
+    if request.method == 'OPTIONS':
+        # Handle preflight request by adding CORS headers
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    
     try:
+        print("devi")
         result = generate_marketing_captions(client_id, product_id)
-        if result:
-            store_captions_in_dynamodb(result)
-            return jsonify(result), 200
-        else:
-            return jsonisfy({"status": "error", "message": "Caption generation failed"}), 500
+        store_captions_in_dynamodb(result)
+        print(result)
+        res = make_response(jsonify(result), 200)
+        res.headers['Access-Control-Allow-Origin'] = "*"
+        return res
     except Exception as e:
         logging.error(f"Error generating captions for client_id {client_id} and product_id {product_id}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
